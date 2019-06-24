@@ -6,6 +6,10 @@ class ServidorProxy {
 
 	int emUso=0;
 	int usaMultiThread=1;
+	ArrayList<String> whiteDomains;
+	ArrayList<String> blackDomains;
+	ArrayList<String> forbiddenWords;
+	String temporario;
 
 	class Executor implements Runnable {
 		Socket comuniCliente, dominConec;
@@ -110,7 +114,7 @@ class ServidorProxy {
 						}
 					}
 
-					if(1==1) { //substituir pela condição relacionada aos arquivos
+					if(!blackDomains.contains(domainName)) { //substituir pela condição relacionada aos arquivos
 						//estabelece conexão com o domínio requisitado pelo cliente
 						dominConec=new Socket(ipAddr, porta);
 						outDomin=dominConec.getOutputStream();
@@ -166,7 +170,37 @@ class ServidorProxy {
 						}
 						obtemRepassaResposta();
 					}  else {
-
+						System.out.println("O domínio requisitado é proibido\n\n");
+						bEscritor.print("HTTP/1.1 200 OK\r\n");
+						bEscritor.flush();
+						bEscritor.print("Date: Mon, 24 Jun 2019 02:35:51 GMT\r\n");
+						bEscritor.flush();
+						bEscritor.print("Connection: Keep-Alive\r\n");
+						bEscritor.flush();
+						bEscritor.print("Content-Type: text/html; charset=UTF-8\r\n");
+						bEscritor.flush();
+						bEscritor.print("\r\n");
+						bEscritor.flush();
+						bEscritor.print("<html>\n");
+						bEscritor.flush();
+						bEscritor.print("<head>\n");
+						bEscritor.flush();
+						bEscritor.print("<title>\n");
+						bEscritor.flush();
+						bEscritor.print("Erro: página na blacklist\n");
+						bEscritor.flush();
+						bEscritor.print("</title>\n");
+						bEscritor.flush();
+						bEscritor.print("</head>\n");
+						bEscritor.flush();
+						bEscritor.print("<body>\n");
+						bEscritor.flush();
+						bEscritor.print("<h1><p><b>Erro: Domínio na blackList!!!</b></p></h1>\n");
+						bEscritor.flush();
+						bEscritor.print("</body>\n");
+						bEscritor.flush();
+						bEscritor.print("</html>\n");
+						bEscritor.flush();
 					}
 
 				} catch(Exception exc) {
@@ -179,7 +213,7 @@ class ServidorProxy {
 						System.out.println("Falha ao fechar os soquetes\n");
 					}
 					//System.out.println("Finalizei esse Thread\n\n");
-					emUso=0;
+					//emUso=0;
 				}
 			}
 		}
@@ -231,7 +265,7 @@ class ServidorProxy {
 		}
 
 		public void run() {
-			emUso=1;
+			//emUso=1;
 			try {
 				//inicializa o leitor e o escritor para o cliente
 				inCliente=comuniCliente.getInputStream();
@@ -253,16 +287,22 @@ class ServidorProxy {
 	}
 
 	public void executa() {
+		try{
+			File blacklist=new File("blacklist.txt");
+			BufferedReader readerBlack=new BufferedReader(new FileReader(blacklist));
+			blackDomains=new ArrayList<String>();
+			while((temporario=readerBlack.readLine())!=null) {
+				blackDomains.add(temporario);
+			}
+			readerBlack.close();
+		} catch(Exception exc) {
+			System.out.println("Falha ao abrir os arquivos\n\n");
+		}
 		try {
 			ServerSocket sockeServ = new ServerSocket(2048);
 			while(true) {
-				if(usaMultiThread==1) {
-					Thread t = new Thread(new Executor(sockeServ.accept()));
-					t.start();
-				} else if(emUso==0) {
-					Thread t = new Thread(new Executor(sockeServ.accept()));
-					t.start();
-				}
+				Thread t = new Thread(new Executor(sockeServ.accept()));
+				t.start();
 			}
 		} catch(IOException exc) {
 			exc.printStackTrace();
